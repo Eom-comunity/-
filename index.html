@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우리끼리 끝말잇기</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+        .box { background: white; padding: 30px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
+        button { padding: 10px 20px; font-size: 16px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .word-box { font-size: 28px; font-weight: bold; color: #2c3e50; margin: 20px 0; }
+        .history { color: #7f8c8d; margin-top: 15px; max-width: 400px; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>🎮 우리끼리 끝말잇기</h1>
+        <div class="word-box">제시어: <span id="current-word">시작</span></div>
+        
+        <input type="text" id="word-input" placeholder="단어 입력..." onkeyup="if(window.event.keyCode==13){submitWord()}">
+        <button onclick="submitWord()">제출</button>
+        
+        <p id="msg" style="color: red;"></p>
+        
+        <div class="history">
+            <strong>사용한 단어:</strong><br>
+            <span id="history-list">시작</span>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ 아래 주소를 4단계에서 만들어진 본인의 Render 주소로 교체하세요!
+        const BACKEND_URL = "https://kutmar.onrender.com/"; 
+
+        let currentWord = "시작";
+        const usedWords = new Set(["시작"]);
+
+        async function submitWord() {
+            const inputEl = document.getElementById('word-input');
+            const msgEl = document.getElementById('msg');
+            const input = inputEl.value.trim();
+            msgEl.innerText = "";
+
+            if (input.length < 2) {
+                msgEl.innerText = "두 글자 이상 입력해 주세요!";
+                return;
+            }
+
+            // 첫 글자 검증 (마지막 글자로 시작하는지)
+            const lastChar = currentWord[currentWord.length - 1];
+            if (input[0] !== lastChar) {
+                msgEl.innerText = `'${lastChar}'(으)로 시작해야 합니다!`;
+                return;
+            }
+
+            // 중복 단어 검증
+            if (usedWords.has(input)) {
+                msgEl.innerText = "이미 사용된 단어입니다!";
+                return;
+            }
+
+            msgEl.innerText = "국립국어원 사전 검증 중...";
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/check?word=${encodeURIComponent(input)}`);
+                const data = await res.json();
+
+                if (data.success) {
+                    currentWord = input;
+                    usedWords.add(input);
+                    document.getElementById('current-word').innerText = currentWord;
+                    document.getElementById('history-list').innerText = Array.from(usedWords).join(', ');
+                    inputEl.value = '';
+                    msgEl.innerText = "";
+                } else {
+                    msgEl.innerText = data.reason || "사전에 없는 단어입니다!";
+                }
+            } catch (err) {
+                msgEl.innerText = "서버 통신 오류가 발생했습니다.";
+            }
+        }
+    </script>
+</body>
+</html>
